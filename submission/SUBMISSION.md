@@ -20,3 +20,9 @@ PROGRAM:
 - Used a finite state machine (FSM) for the program. Using a FSM made it easy to transition between behaviours.
 - loop checks for button pushes and acts depending on the state when the button was pushed
 ```
+
+## THINGS I HAD TO RESEARCH
+[17/03]
+- had to look into how to wire up a push button to the arduino (https://www.youtube.com/watch?v=GRyDJAJlxAQ)
+- had to research the bounds of input to analogWrite function (https://docs.arduino.cc/language-reference/en/functions/analog-io/analogWrite/) 
+- specific functions to open connection to serial monitor and turn on/off LED.
