@@ -116,16 +116,20 @@ void loop()
   	int reactionTime = int(reactionTimeEnd - reactionTimeStart);
     generateResultReport(reactionTime);
     
+    int pulsePeriod = 0;
     if (reactionTime < FAST_REACTION_MAX) {
       //fast reaction
-      reactionPulse(REACTION_PULSE_DURATION, FAST_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+      pulsePeriod = FAST_PULSE_PERIOD;
     } else if (reactionTime < MEDIUM_REACTION_MAX) {
       //to slow for fast but under medium time, medium reaction
-      pulse(REACTION_PULSE_DURATION, MEDIUM_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+      pulsePeriod = MEDIUM_PULSE_PERIOD;
     }else {
       //SLOW REACTION
-      pulse(REACTION_PULSE_DURATION, SLOW_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+      pulsePeriod = SLOW_PULSE_PERIOD;
     }
+    
+    reactionPulse(pulsePeriod);
+    
     reacted = false;
     //back to IDLE, turn off lights, reaction time registered
     analogWrite(PRIMARY_LED_PIN, MIN_ANALOG_OUTPUT); 
@@ -146,7 +150,33 @@ void loop()
 }
 
 void falseStartPulse() {
-  pulse(FALSE_START_PULSE_DURATION, RAPID_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ARMED_OUTPUT);  
+
+  //use unsigned long as user may start button press after very long time
+  unsigned long startTime = millis();
+  unsigned long currTime = startTime;
+
+  //how bright to make primary LED
+  int brightness = 0;
+  //elapsed time is curr - start
+  while (currTime - startTime < FALSE_START_PULSE_DURATION) {
+    //use modulo to find out what part of the period of the pulse we are in (first or second half
+  	unsigned long timeInCycle = (currTime - startTime) % (RAPID_PULSE_PERIOD);  
+    
+    //use the provided map function to create a basic triangle wave for our analog pin output
+    if (timeInCycle < RAPID_PULSE_PERIOD / 2) {
+      //in first half of cycle - getting brighter
+      brightness = map(timeInCycle, 0, RAPID_PULSE_PERIOD/2, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+    } else {
+      //in second half of cycle - getting smaller
+      brightness = map(timeInCycle, RAPID_PULSE_PERIOD/2, RAPID_PULSE_PERIOD, MAX_ANALOG_OUTPUT, MIN_ANALOG_OUTPUT);
+    }
+    
+   
+    analogWrite(PRIMARY_LED_PIN, brightness);
+    currTime = millis();
+  }
+  
+  //false start pulse over, return
   return;
 }
 
@@ -154,13 +184,39 @@ void falseStartPulse() {
 //map function documentation: https://docs.arduino.cc/language-reference/en/functions/math/map/
 //millis function docs: https://docs.arduino.cc/language-reference/en/functions/time/millis/
 void armedPulse(int duration) {
-  //using seperate bool as a race may happen between loop and handleButtonInput
-  bool falseStartOccured = pulse(duration, ARMED_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ARMED_OUTPUT);
-  //could have returned because of a false start
-  if (falseStartOccured) {
-    return;
-  } 
-  //if here, arming process went fine
+  //use unsigned long as user may start button press after very long time
+  unsigned long startTime = millis();
+  unsigned long currTime = startTime;
+
+  //how bright to make primary LED
+  int brightness = 0;
+  //elapsed time is curr - start
+  while (currTime - startTime < duration) {
+    //use modulo to find out what part of the period of the pulse we are in (first or second half
+  	unsigned long timeInCycle = (currTime - startTime) % (ARMED_PULSE_PERIOD);  
+    
+    //use the provided map function to create a basic triangle wave for our analog pin output
+    if (timeInCycle < ARMED_PULSE_PERIOD / 2) {
+      //in first half of cycle - getting brighter
+      brightness = map(timeInCycle, 0, ARMED_PULSE_PERIOD/2, MIN_ANALOG_OUTPUT, MAX_ARMED_OUTPUT);
+    } else {
+      //in second half of cycle - getting smaller
+      brightness = map(timeInCycle, ARMED_PULSE_PERIOD/2, ARMED_PULSE_PERIOD, MAX_ARMED_OUTPUT, MIN_ANALOG_OUTPUT);
+    }
+    
+    if (circuitState == ARMED) {
+      //no false starts since we calculated brightness OR this is a reactionary pulse
+      analogWrite(PRIMARY_LED_PIN, brightness);
+      
+    } else {
+      //false start occured
+      //analogWrite(PRIMARY_LED_PIN, minBrightness);
+      return;
+      
+    }
+    
+    currTime = millis();
+  }
 
   //duration over, we are now ready to get reaction time
   circuitState = REACTION;
@@ -176,7 +232,30 @@ void armedPulse(int duration) {
 //map function documentation: https://docs.arduino.cc/language-reference/en/functions/math/map/
 //millis function docs: https://docs.arduino.cc/language-reference/en/functions/time/millis/
 void reactionPulse(int period) {
-  void pulse(REACTION_PULSE_DURATION, period, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+  //use unsigned long as user may start button press after very long time
+  unsigned long startTime = millis();
+  unsigned long currTime = startTime;
+
+  //how bright to make primary LED
+  int brightness = 0;
+  //elapsed time is curr - start
+  while (currTime - startTime < REACTION_PULSE_DURATION) {
+    //use modulo to find out what part of the period of the pulse we are in (first or second half
+  	unsigned long timeInCycle = (currTime - startTime) % (period);  
+    
+    //use the provided map function to create a basic triangle wave for our analog pin output
+    if (timeInCycle < period / 2) {
+      //in first half of cycle - getting brighter
+      brightness = map(timeInCycle, 0, period/2, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+    } else {
+      //in second half of cycle - getting smaller
+      brightness = map(timeInCycle, period/2, period, MAX_ANALOG_OUTPUT, MIN_ANALOG_OUTPUT);
+    }
+    
+    analogWrite(PRIMARY_LED_PIN, brightness);
+    currTime = millis();
+  }
+  
   return;
 }
 
@@ -238,9 +317,7 @@ void generateResultReport(int reactionTime) {
 //duration and period in milliseconds
 //map function documentation: https://docs.arduino.cc/language-reference/en/functions/math/map/
 //millis function docs: https://docs.arduino.cc/language-reference/en/functions/time/millis/
-//return true if all good
-//returns false if a false start occured
-bool pulse(int duration, int period, int minBrightness, int maxBrightness) {
+void pulse(int duration, int period, int minBrightness, int maxBrightness) {
   //use unsigned long as user may start button press after very long time
   unsigned long startTime = millis();
   unsigned long currTime = startTime;
@@ -261,17 +338,34 @@ bool pulse(int duration, int period, int minBrightness, int maxBrightness) {
       brightness = map(timeInCycle, period/2, period, maxBrightness, minBrightness);
     }
     
-    if (!falseStart) {
+    if (circuitState == ARMED || circuitState == REACTION) {
+      Serial.println("update brightness");
+      //no false starts since we calculated brightness OR this is a reactionary pulse
       analogWrite(PRIMARY_LED_PIN, brightness);
     } else {
       //false start occured
-      return false;
+      //analogWrite(PRIMARY_LED_PIN, minBrightness);
+      return;
     }
     
     currTime = millis();
   }
-
-  return true;
+  
+  if (circuitState == REACTION) {
+  	//this function was called as a result of a reaction, so the pulsing that just occured
+    //is feedback, so just return
+    return;
+  }
+  //if here, this was an arming pulse
+  
+  //duration over, we are now ready to get reaction time
+  circuitState = REACTION;
+  reactionTimeStart = millis();
+  //turn primary and secondary LED all the way on
+  //primary is on analog pin, secondary is on digital pin,
+  analogWrite(PRIMARY_LED_PIN, MAX_ANALOG_OUTPUT);
+  digitalWrite(SECONDARY_LED_PIN, HIGH);
+  return;
 }
 
 
