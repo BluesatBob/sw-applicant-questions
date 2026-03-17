@@ -1,10 +1,22 @@
 ## Tinkercad Circuit Link
 
 ```
-replace this box with your Tinkercad circuit link
+https://www.tinkercad.com/things/kpWQ6bq5NlN/editel
 ```
 
 ## Program Explanation
 ```
 replace me with a short explanation of how your program / circuit works and any assumptions or design decisions you made
+
+- assumed that the delay could be any number of milliseconds between 2 and 10.
+
+= Used analog output pin for the LED to make pulsing easier (instead of ON/OFF many times with digital output pin)
+
+CIRCUIT:
+- on left side of the breadboard is the input "module", when the button is pushed the input pin (digital pin 7) recieves the signal and acts based on the programs state
+- on right side of the breadboard is a simple LED circuit hooked to GND and analog output pin 9.
+
+PROGRAM:
+- Used a finite state machine (FSM) for the program. Using a FSM made it easy to transition between behaviours.
+- loop checks for button pushes and acts depending on the state when the button was pushed
 ```
