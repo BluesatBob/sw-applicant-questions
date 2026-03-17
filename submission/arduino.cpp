@@ -14,8 +14,8 @@
 #define MIN_ANALOG_OUTPUT 0
 #define MAX_ANALOG_OUTPUT 255
 
-//max brightness during pulsing of armed phase
-//ensures we can distinguish between pusling and time starting
+//max brightness during pulsing of armed phase and false start pulse
+//ensures we can distinguish between pusling/time starting and false start/reaction feedback
 //however still have backup LED for those who can't distinguish
 #define MAX_ARMED_OUTPUT 100
 //the max and min time (in seconds) the armed phase pulse can be
@@ -27,11 +27,11 @@
 //how many milliseconds a single pulse (off->on->off) should last (milliseconds)
 #define ARMED_PULSE_PERIOD 1000
 //how long pulsing for reaction and false start should last (ms)
-#define REACTION_PULSE_DURATION 1000
+#define REACTION_PULSE_DURATION 1500
 #define FALSE_START_PULSE_DURATION 2000
 
 //milliseconds for a slow reaction pulse 
-#define SLOW_PULSE_PERIOD 1000
+#define SLOW_PULSE_PERIOD 800
 
 //milliseconds for a medium reaction pulse
 #define MEDIUM_PULSE_PERIOD 500
@@ -98,6 +98,21 @@ void setup()
   pinMode(PRIMARY_LED_PIN, OUTPUT);
   pinMode(SECONDARY_LED_PIN, OUTPUT);
 
+  //TEST: remove me
+  falseStartPulse();
+  analogWrite(PRIMARY_LED_PIN, 0);
+  delay(1000);
+  reactionPulse(FAST_PULSE_PERIOD);
+  analogWrite(PRIMARY_LED_PIN, 0);
+  delay(1000);
+  reactionPulse(MEDIUM_REACTION_MAX);
+  analogWrite(PRIMARY_LED_PIN, 0);
+  delay(1000);
+  reactionPulse(SLOW_PULSE_PERIOD);
+  analogWrite(PRIMARY_LED_PIN, 0);
+  delay(1000);
+  //
+  
   //open serial monitor connection for writing to terminal
   Serial.begin(9600);  
 }
@@ -112,29 +127,36 @@ void loop()
   }
   
   if (reacted) {
+    //turn off secondary LED
+    digitalWrite(SECONDARY_LED_PIN, LOW);
+    
     //we know that the reaction time will be a couple hundred - a thousand ms, so can be stored in an int
   	int reactionTime = int(reactionTimeEnd - reactionTimeStart);
     generateResultReport(reactionTime);
     
+	//figure out what category the reaction time falls into    
+    int pulsePeriod = 0;
     if (reactionTime < FAST_REACTION_MAX) {
       //fast reaction
-      reactionPulse(REACTION_PULSE_DURATION, FAST_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+      pulsePeriod = FAST_PULSE_PERIOD;
     } else if (reactionTime < MEDIUM_REACTION_MAX) {
       //to slow for fast but under medium time, medium reaction
-      pulse(REACTION_PULSE_DURATION, MEDIUM_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+      pulsePeriod = MEDIUM_PULSE_PERIOD;
     }else {
       //SLOW REACTION
-      pulse(REACTION_PULSE_DURATION, SLOW_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+      pulsePeriod = SLOW_PULSE_PERIOD;
     }
+    
+    //pulse to give user feedback on their reaction
+    reactionPulse(pulsePeriod);
     reacted = false;
-    //back to IDLE, turn off lights, reaction time registered
+    
+    //back to IDLE, turn off primary LED, reaction time registered
     analogWrite(PRIMARY_LED_PIN, MIN_ANALOG_OUTPUT); 
-    digitalWrite(SECONDARY_LED_PIN, LOW);
     //circuitState = IDLE; happens in handleButtonInput
   }
 
   if (falseStart) {
-    Serial.println("false start");
     falseStart = false;
     falseStartPulse();
     
@@ -146,6 +168,7 @@ void loop()
 }
 
 void falseStartPulse() {
+  Serial.println("false start");
   pulse(FALSE_START_PULSE_DURATION, RAPID_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ARMED_OUTPUT);  
   return;
 }
@@ -155,9 +178,11 @@ void falseStartPulse() {
 //millis function docs: https://docs.arduino.cc/language-reference/en/functions/time/millis/
 void armedPulse(int duration) {
   //using seperate bool as a race may happen between loop and handleButtonInput
-  bool falseStartOccured = pulse(duration, ARMED_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ARMED_OUTPUT);
-  //could have returned because of a false start
-  if (falseStartOccured) {
+  bool successfulArm = pulse(duration, ARMED_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ARMED_OUTPUT);
+  //could have returned false because of a false start
+  if (!successfulArm) {
+    //false start occured
+    Serial.println("armedPulse: a false start occured while pulsing");
     return;
   } 
   //if here, arming process went fine
@@ -176,7 +201,7 @@ void armedPulse(int duration) {
 //map function documentation: https://docs.arduino.cc/language-reference/en/functions/math/map/
 //millis function docs: https://docs.arduino.cc/language-reference/en/functions/time/millis/
 void reactionPulse(int period) {
-  void pulse(REACTION_PULSE_DURATION, period, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
+  pulse(REACTION_PULSE_DURATION, period, MIN_ANALOG_OUTPUT, MAX_ANALOG_OUTPUT);
   return;
 }
 
@@ -264,6 +289,7 @@ bool pulse(int duration, int period, int minBrightness, int maxBrightness) {
     if (!falseStart) {
       analogWrite(PRIMARY_LED_PIN, brightness);
     } else {
+      Serial.println("false start occured");
       //false start occured
       return false;
     }
