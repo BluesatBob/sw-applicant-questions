@@ -97,21 +97,6 @@ void setup()
   pinMode(BUTTON_PIN, INPUT);
   pinMode(PRIMARY_LED_PIN, OUTPUT);
   pinMode(SECONDARY_LED_PIN, OUTPUT);
-
-  //TEST: remove me
-  falseStartPulse();
-  analogWrite(PRIMARY_LED_PIN, 0);
-  delay(1000);
-  reactionPulse(FAST_PULSE_PERIOD);
-  analogWrite(PRIMARY_LED_PIN, 0);
-  delay(1000);
-  reactionPulse(MEDIUM_REACTION_MAX);
-  analogWrite(PRIMARY_LED_PIN, 0);
-  delay(1000);
-  reactionPulse(SLOW_PULSE_PERIOD);
-  analogWrite(PRIMARY_LED_PIN, 0);
-  delay(1000);
-  //
   
   //open serial monitor connection for writing to terminal
   Serial.begin(9600);  
@@ -168,7 +153,6 @@ void loop()
 }
 
 void falseStartPulse() {
-  Serial.println("false start");
   pulse(FALSE_START_PULSE_DURATION, RAPID_PULSE_PERIOD, MIN_ANALOG_OUTPUT, MAX_ARMED_OUTPUT);  
   return;
 }
@@ -182,7 +166,6 @@ void armedPulse(int duration) {
   //could have returned false because of a false start
   if (!successfulArm) {
     //false start occured
-    Serial.println("armedPulse: a false start occured while pulsing");
     return;
   } 
   //if here, arming process went fine
@@ -289,7 +272,6 @@ bool pulse(int duration, int period, int minBrightness, int maxBrightness) {
     if (!falseStart) {
       analogWrite(PRIMARY_LED_PIN, brightness);
     } else {
-      Serial.println("false start occured");
       //false start occured
       return false;
     }
