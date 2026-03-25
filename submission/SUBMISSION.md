@@ -1,3 +1,9 @@
+## Applicant infomration
+```
+Zid: z5699204
+email: z5699204@ad.unsw.edu.au
+```
+
 ## Tinkercad Circuit Link
 
 ```
@@ -9,9 +15,9 @@ https://www.tinkercad.com/things/kpWQ6bq5NlN-bluesatta-bluesatbob
 
 ## Program Explanation
 ```
-replace me with a short explanation of how your program / circuit works and any assumptions or design decisions you made
-
 - assumed that the delay could be any number of milliseconds between 2 and 10.
+
+- assumed that the user would not push the button while the system is giving feedback for the reaction time
 
 - Used analog output pin for the LED to make pulsing easier (instead of ON/OFF many times with digital output pin)
  
@@ -45,4 +51,4 @@ PROGRAM:
 - bug came up where during the pulsing the delay meant that sometimes the button press wasn't registered. Fixing this meant coming up with a way to always be checking for button input on the side and not using any delay() calls in the pulse function. This led to me researching Interrupts (https://docs.arduino.cc/language-reference/en/functions/external-interrupts/attachInterrupt/). I also swapped out the delay() calls in pulse to instead use the millis() function (https://docs.arduino.cc/language-reference/en/functions/time/millis/). Finally, the map function (https://docs.arduino.cc/language-reference/en/functions/math/map/) was used with the modulo operator to take any general time since the pulse function was called, bound it to somewhere inside the pulse period, and then map it to a specific brightness (used a triangle wave for the pulse for simplicity)
 - do not yet know why, but the circuit only behaves if a voltmeter is watching the input voltage (schrodingers current)
 [18/03]
-- schrodinger's current is no longer an issue, the circuit behaves without the voltmeter
+- schrodinger's current is no longer an issue, the circuit behaves without the voltmeter, I can only assume it was because of some tinkercad simulation thing
