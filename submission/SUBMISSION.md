@@ -52,3 +52,6 @@ PROGRAM:
 - do not yet know why, but the circuit only behaves if a voltmeter is watching the input voltage (schrodingers current)
 [18/03]
 - schrodinger's current is no longer an issue, the circuit behaves without the voltmeter, I can only assume it was because of some tinkercad simulation thing
+[27/03]
+- researched floating pins and pull down resistors(https://www.youtube.com/shorts/kfhMEIbKGJQ and https://forum.arduino.cc/t/digital-read-floating-pins/1063362/2 and https://www.youtube.com/watch?v=G_i1ZhadTa0). Turns out the reason my circuit wouldn't work when the voltmeter wasn't connected was because the voltmeter (which internally has a massive resistance for measuring voltage) was inadvertently grounding pin 2 when the button wasn't pushed, only activating the pin when the button was pressed. Without the voltmeter, pin 2 was floating, and as a result the arduino was unable to deduce when the pin had recieved a HIGH input from the button. By adding a pull down resistor I ensured that pin 2 was set to a defined LOW state, when the button was pushed there was now a voltage difference across the resistor, and so the pin registered as having HIGH input. When the circuit worked without the voltmeter plugged in I must have just gotten lucky - now I can confidently say that there should be no issue with floating pins.
+
